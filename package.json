@@ -1,0 +1,22 @@
+{
+  "name": "preaid",
+  "version": "1.0.0",
+  "description": "AI-powered health assistant",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'No build step required for static site'",
+    "start": "npx serve . -p 3000",
+    "dev": "npx serve . -p 3000"
+  },
+  "dependencies": {
+    "serve": "^14.2.1"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/preaid.git"
+  },
+  "keywords": ["health", "ai", "medical", "assistant"],
+  "author": "Your Name",
+  "license": "MIT"
+}
