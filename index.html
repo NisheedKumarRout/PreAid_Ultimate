@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PreAid - Your Personal Health Companion</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e74c3c'><path d='M22 12h-4l-3 9L9 3l-3 9H2'/></svg>">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=3.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="cache-buster" content="3.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -192,124 +196,6 @@
     <!-- History Panel -->
     <div class="history-panel hidden" id="history-panel">
       <div class="history-header">
-        <h3>Health History</h3>
-        <button id="close-history" class="toggle-history">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <div id="history-list"></div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="main-content">
-      <!-- Hero Section -->
-      <div class="hero-section">
-        <h1 id="hero-title" class="hero-title">Good day! How can I help you today?</h1>
-        <p class="hero-subtitle">Describe your symptoms or health concerns, and I'll provide personalized medical guidance</p>
-      </div>
-
-      <!-- Chat Container -->
-      <div class="chat-container">
-        <!-- Chat Messages -->
-        <div class="chat-messages" id="chat-messages"></div>
-        
-        <!-- Input Section -->
-        <div class="input-section">
-          <div class="input-wrapper">
-            <textarea 
-              id="health-issue" 
-              placeholder="Describe your symptoms or health concerns..."
-              data-placeholder-full="Describe your symptoms or health concerns..."
-              data-placeholder-mobile="Describe symptoms..."
-              rows="1"
-            ></textarea>
-            <div class="input-actions">
-              <button id="ambulance-button" class="ambulance-btn" title="Find nearby hospitals">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M8 19H5a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h3m0 3v-3m0 3h3m-3-3V9a1 1 0 0 1 1-1h6l3 4v6a1 1 0 0 1-1 1h-2"/>
-                  <circle cx="7" cy="19" r="2"/>
-                  <circle cx="17" cy="19" r="2"/>
-                </svg>
-              </button>
-              <button id="mic-button" class="mic-btn" title="Voice input">
-                <svg class="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                  <line x1="12" y1="19" x2="12" y2="23"/>
-                  <line x1="8" y1="23" x2="16" y2="23"/>
-                </svg>
-              </button>
-              <button id="send-button" class="send-btn" title="Send message">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="22" y1="2" x2="11" y2="13"/>
-                  <polygon points="22,2 15,22 11,13 2,9 22,2"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Hospital Modal -->
-  <div id="hospital-modal" class="hospital-modal hidden">
-    <div class="hospital-modal-content">
-      <div class="hospital-modal-header">
-        <h3>🏥 Nearby Hospitals & Emergency Services</h3>
-        <button id="close-hospital-modal" class="close-modal-btn">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <div class="hospital-modal-body">
-        <div class="map-container">
-          <div class="hospital-map">
-            <!-- Google Map will be loaded here -->
-            <div id="google-map" class="google-map"></div>
-            
-            <!-- Hospital List for fallback -->
-            <div id="hospital-list" class="hospital-list hidden">
-              <div class="hospital-list-header">
-                <h4>📍 Hospitals near you</h4>
-              </div>
-              <div id="hospital-items" class="hospital-items"></div>
-            </div>
-          </div>
-          
-          <!-- Map Loading -->
-          <div id="map-loading" class="map-loading">
-            <div class="loading-spinner"></div>
-            <div id="loading-text">Requesting location permission...</div>
-          </div>
-        </div>
-        
-        <div class="hospital-details" id="hospital-details">
-          <div class="details-placeholder">
-            <p>🏥 Click on a hospital marker to view details</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Scripts -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
-  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
-  <script src="env-config.js"></script>
-  <script src="hospital-data.js"></script>
-  <script src="direct-ai.js"></script>
-  <script src="debug-auth.js"></script>
-  <script src="script.js"></script>
-</body>
-</html>>
-      <div class="history-header">
         <h3>Chat History</h3>
         <button class="toggle-history" id="close-history">×</button>
       </div>
@@ -336,16 +222,6 @@
               rows="1"
             ></textarea>
             <div class="input-actions">
-              <button id="ambulance-button" class="ambulance-btn" title="Find nearby hospitals">
-                <svg class="ambulance-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M8 19H5a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h3m0 3v-3m0 3h3m-3-3V9a1 1 0 0 1 1-1h6l3 4v6a1 1 0 0 1-1 1h-2"/>
-                  <circle cx="7" cy="19" r="2"/>
-                  <circle cx="17" cy="19" r="2"/>
-                  <path d="M14 12h2l2-2h-4v2z"/>
-                  <path d="M9 12h2v2H9v-2z"/>
-                  <path d="M11 10h2v2h-2v-2z"/>
-                </svg>
-              </button>
               <button id="mic-button" class="mic-btn" title="Voice input">
                 <svg class="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -370,52 +246,8 @@
 
   </div>
 
-  <!-- Hospital Map Modal -->
-  <div id="hospital-modal" class="hospital-modal hidden">
-    <div class="hospital-modal-content">
-      <div class="hospital-modal-header">
-        <h3>🏥 Nearby Hospitals</h3>
-        <button id="close-hospital-modal" class="close-modal-btn">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <div class="hospital-modal-body">
-        <div class="map-container">
-          <div id="hospital-map" class="hospital-map">
-            <div id="google-map" class="google-map"></div>
-            <div class="radar-overlay" id="radar-overlay">
-              <div class="radar-container">
-                <div class="radar-sweep"></div>
-                <div class="radar-rings">
-                  <div class="radar-ring"></div>
-                  <div class="radar-ring"></div>
-                  <div class="radar-ring"></div>
-                </div>
-              </div>
-            </div>
-            <div class="map-loading" id="map-loading">
-              <div class="loading-spinner"></div>
-              <p id="loading-text">Requesting location permission...</p>
-            </div>
-          </div>
-        </div>
-        <div class="hospital-details" id="hospital-details">
-          <div class="details-placeholder">
-            <p>🏥 Click on a hospital marker to view details</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="env-config.js"></script>
-  <script src="hospital-data.js"></script>
-  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
-  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="script.js?v=3.0"></script>
 </body>
 </html>

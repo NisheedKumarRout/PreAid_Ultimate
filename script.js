@@ -1,36 +1,26 @@
-// Supabase Configuration - will be set via Netlify environment variables
-if (typeof supabase === 'undefined') var supabase = null;
+// Supabase Configuration
+const SUPABASE_URL = window.ENV?.SUPABASE_URL || 'SUPABASE_URL_NOT_CONFIGURED';
+const SUPABASE_ANON_KEY = window.ENV?.SUPABASE_ANON_KEY || 'SUPABASE_KEY_NOT_CONFIGURED';
 
-// Initialize Supabase when DOM is ready
-function initializeSupabase() {
-  try {
-    // For production, these will be injected by Netlify
-    // For local development, you need to create env-config.js
-    const SUPABASE_URL = window.ENV?.SUPABASE_URL || process?.env?.SUPABASE_URL;
-    const SUPABASE_ANON_KEY = window.ENV?.SUPABASE_ANON_KEY || process?.env?.SUPABASE_ANON_KEY;
-    
-    if (typeof window.supabase !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY) {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      console.log('Supabase initialized successfully');
-      return true;
-    } else {
-      console.log('Supabase credentials not available - using guest mode only');
-      console.log('Supabase library available:', typeof window.supabase !== 'undefined');
-      console.log('ENV available:', !!window.ENV);
-      return false;
-    }
-  } catch (error) {
-    console.error('Error initializing Supabase:', error);
-    return false;
+// Initialize Supabase client
+let supabase;
+try {
+  if (typeof window.supabase !== 'undefined') {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Supabase initialized successfully');
+  } else {
+    console.error('Supabase library not loaded');
   }
+} catch (error) {
+  console.error('Error initializing Supabase:', error);
 }
 
 // Global state
-if (typeof currentUser === 'undefined') var currentUser = null;
-if (typeof isGuest === 'undefined') var isGuest = false;
-if (typeof chatHistory === 'undefined') var chatHistory = [];
-if (typeof recognition === 'undefined') var recognition = null;
-if (typeof lastUserMessageId === 'undefined') var lastUserMessageId = null;
+let currentUser = null;
+let isGuest = false;
+let chatHistory = [];
+let recognition = null;
+let lastUserMessageId = null;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
@@ -49,15 +39,12 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initializeApp() {
   console.log('Initializing app...');
   
-  // Initialize Supabase first
-  const supabaseReady = initializeSupabase();
-  
   // Set responsive placeholder
   setResponsivePlaceholder();
   window.addEventListener('resize', setResponsivePlaceholder);
   
   try {
-    if (!supabaseReady || !supabase) {
+    if (!supabase) {
       console.log('Supabase not available, using guest mode only');
       showAuthModal();
       setupEventListeners();
@@ -82,22 +69,20 @@ async function initializeApp() {
     }
     
     // Listen for auth changes
-    if (supabase) {
-      supabase.auth.onAuthStateChange((event, session) => {
-        console.log('Auth state change:', event, session);
-        
-        if (event === 'SIGNED_IN') {
-          currentUser = session.user;
-          isGuest = false;
-          // Force reload to ensure fresh UI
-          window.location.reload(true);
-        } else if (event === 'SIGNED_OUT' && !isGuest) {
-          // Only redirect to login if not in guest mode
-          currentUser = null;
-          showAuthModal();
-        }
-      });
-    }
+    supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, session);
+      
+      if (event === 'SIGNED_IN') {
+        currentUser = session.user;
+        isGuest = false;
+        // Force reload to ensure fresh UI
+        window.location.reload(true);
+      } else if (event === 'SIGNED_OUT' && !isGuest) {
+        // Only redirect to login if not in guest mode
+        currentUser = null;
+        showAuthModal();
+      }
+    });
     
   } catch (error) {
     console.error('Error initializing app:', error);
@@ -202,16 +187,10 @@ function setupEventListeners() {
   
   // Debug: Check if Supabase is loaded
   console.log('Supabase client:', supabase);
-  console.log('ENV available:', !!window.ENV);
+  console.log('Supabase URL:', SUPABASE_URL);
   
   // Main app
-  // Main app listeners - only add if elements exist
-  const sendBtn = document.getElementById('send-button');
-  if (sendBtn) sendBtn.addEventListener('click', sendMessage);
-  
-  const ambulanceBtn = document.getElementById('ambulance-button');
-  if (ambulanceBtn) ambulanceBtn.addEventListener('click', openHospitalModal);
-  
+  document.getElementById('send-button').addEventListener('click', sendMessage);
   const healthIssueInput = document.getElementById('health-issue');
   if (healthIssueInput) {
     healthIssueInput.addEventListener('keypress', (e) => {
@@ -220,51 +199,42 @@ function setupEventListeners() {
         sendMessage();
       }
     });
-  }
-  
-  const micBtn = document.getElementById('mic-button');
-  if (micBtn) micBtn.addEventListener('click', toggleVoiceInput);
-  
-  const themeBtn = document.getElementById('theme-toggle');
-  if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
-  
-  const logoutBtn = document.getElementById('logout-btn');
-  if (logoutBtn) logoutBtn.addEventListener('click', logout);
-  
-  const historyBtn = document.getElementById('history-toggle');
-  if (historyBtn) historyBtn.addEventListener('click', toggleHistory);
-  
-  const clearBtn = document.getElementById('clear-chat');
-  if (clearBtn) clearBtn.addEventListener('click', clearChat);
-  
-  const shareBtn = document.getElementById('share-chat');
-  if (shareBtn) shareBtn.addEventListener('click', shareChat);
-  
-  // Side panel functionality
-  const sideMenuBtn = document.getElementById('side-menu-toggle');
-  if (sideMenuBtn) sideMenuBtn.addEventListener('click', toggleSidePanel);
-  
-  const closePanelBtn = document.getElementById('close-panel');
-  if (closePanelBtn) closePanelBtn.addEventListener('click', closeSidePanel);
-  
-  const panelOverlay = document.getElementById('panel-overlay');
-  if (panelOverlay) panelOverlay.addEventListener('click', closeSidePanel);
-  
-  const closeHistoryBtn = document.getElementById('close-history');
-  if (closeHistoryBtn) closeHistoryBtn.addEventListener('click', closeHistoryPanel);
-  
-  // Hospital modal event listeners
-  const closeHospitalBtn = document.getElementById('close-hospital-modal');
-  if (closeHospitalBtn) closeHospitalBtn.addEventListener('click', closeHospitalModal);
-  
-  const hospitalModal = document.getElementById('hospital-modal');
-  if (hospitalModal) {
-    hospitalModal.addEventListener('click', (e) => {
-      if (e.target.id === 'hospital-modal') {
-        closeHospitalModal();
+    
+    healthIssueInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
       }
     });
   }
+  
+  document.getElementById('mic-button').addEventListener('click', toggleVoiceInput);
+  document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+  document.getElementById('logout-btn').addEventListener('click', logout);
+  document.getElementById('history-toggle').addEventListener('click', toggleHistory);
+  document.getElementById('clear-chat').addEventListener('click', clearChat);
+  document.getElementById('share-chat').addEventListener('click', shareChat);
+  
+  // Side panel functionality
+  document.getElementById('side-menu-toggle').addEventListener('click', toggleSidePanel);
+  document.getElementById('close-panel').addEventListener('click', closeSidePanel);
+  document.getElementById('panel-overlay').addEventListener('click', closeSidePanel);
+  document.getElementById('close-history').addEventListener('click', closeHistoryPanel);
+  
+  // Keep old menu toggle for left hamburger (if exists)
+  const menuToggle = document.getElementById('menu-toggle');
+  if (menuToggle) {
+    menuToggle.addEventListener('click', toggleDropdownMenu);
+  }
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('dropdown-menu');
+    const menuToggle = document.getElementById('menu-toggle');
+    if (dropdown && !dropdown.contains(e.target) && !menuToggle.contains(e.target)) {
+      dropdown.classList.remove('active');
+    }
+  });
 }
 
 let isSignUpMode = false;
@@ -404,17 +374,12 @@ async function handleEmailAuth() {
       console.log('Sign-in response:', { data, error });
       
       if (error) {
-        console.error('Email sign-in detailed error:', error);
         if (error.message.includes('Invalid login credentials')) {
           alert('Invalid email or password. Please check your credentials or sign up for a new account.');
         } else if (error.message.includes('Email not confirmed')) {
           alert('Please check your email and click the verification link before signing in.');
-        } else if (error.message.includes('signup_disabled')) {
-          alert('New user registration is disabled. Please contact support.');
-        } else if (error.message.includes('email_address_invalid')) {
-          alert('Please enter a valid email address.');
         } else {
-          alert('Sign-in error: ' + error.message + '\n\nError code: ' + (error.status || 'Unknown'));
+          alert('Sign-in error: ' + error.message);
         }
         return;
       }
@@ -437,69 +402,53 @@ async function handleEmailAuth() {
 
 function continueAsGuest() {
   console.log('Guest mode selected');
-  try {
-    isGuest = true;
-    currentUser = null;
-    
-    // Hide auth modal
-    const authModal = document.getElementById('auth-modal');
-    const app = document.getElementById('app');
-    
-    if (authModal && app) {
-      authModal.classList.add('hidden');
-      app.classList.remove('hidden');
-      
-      // Set user name
-      const userName = document.getElementById('user-name');
-      if (userName) {
-        userName.textContent = 'Guest User';
-      }
-      
-      // Set greeting
-      setTimeBasedGreeting();
-      
-      console.log('Guest mode activated successfully');
-    } else {
-      console.error('Required elements not found');
-    }
-  } catch (error) {
-    console.error('Error in continueAsGuest:', error);
-  }
+  isGuest = true;
+  currentUser = null;
+  showApp();
 }
 
 async function handleGoogleSignIn() {
-  console.log('Google sign-in attempted');
+  const googleBtn = document.getElementById('google-signin');
+  const originalText = googleBtn.innerHTML;
   
-  if (!supabase) {
-    alert('Authentication service not available. Please try guest mode.');
-    return;
-  }
+  // Show loading
+  googleBtn.innerHTML = '<span>Signing in...</span>';
+  googleBtn.disabled = true;
   
   try {
-    console.log('Attempting Google OAuth...');
+    console.log('Attempting Google sign-in...');
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`
+        redirectTo: window.location.href.split('?')[0] + `?v=${Date.now()}`
       }
     });
     
-    console.log('Google OAuth response:', { data, error });
+    console.log('Google sign-in response:', { data, error });
     
     if (error) {
       console.error('Google sign-in error:', error);
-      alert('Google sign-in failed: ' + error.message + '\n\nPlease configure Google OAuth in your Supabase project or use email sign-in.');
+      
+      // Show user-friendly error message
+      if (error.message.includes('not enabled')) {
+        alert('Google sign-in is not configured yet. Please use the guest mode for now.');
+      } else {
+        alert('Error signing in with Google: ' + error.message);
+      }
     }
   } catch (error) {
-    console.error('Google sign-in exception:', error);
-    alert('Google sign-in not configured. Please use email sign-in or guest mode.');
+    console.error('Google sign-in catch error:', error);
+    alert('Google sign-in is not available. Please use guest mode.');
+  } finally {
+    // Reset button
+    googleBtn.innerHTML = originalText;
+    googleBtn.disabled = false;
   }
 }
 
 async function logout() {
-  if (supabase) {
-    await supabase.auth.signOut();
-  }
+  await supabase.auth.signOut();
   currentUser = null;
   isGuest = false;
   chatHistory = [];
@@ -568,25 +517,73 @@ async function sendMessage() {
 }
 
 // Global variables for history analysis timeout
-if (typeof lastQuestion === 'undefined') var lastQuestion = '';
-if (typeof consecutiveQuestionCount === 'undefined') var consecutiveQuestionCount = 0;
-if (typeof partialHistoryUsed === 'undefined') var partialHistoryUsed = false;
+let lastQuestion = '';
+let consecutiveQuestionCount = 0;
+let partialHistoryUsed = false;
 
 async function getGeminiAdvice(issue) {
+  // Check for consecutive identical questions
+  if (issue.trim().toLowerCase() === lastQuestion.toLowerCase()) {
+    consecutiveQuestionCount++;
+  } else {
+    consecutiveQuestionCount = 1;
+    partialHistoryUsed = false;
+  }
+  lastQuestion = issue.trim().toLowerCase();
+  
+  // Get relevant history with timeout
+  const contextHistory = await getRelevantHistoryWithTimeout(issue);
+  
   try {
-    console.log('Trying direct AI API...');
-    const advice = await callDirectAI(issue);
-    console.log('Direct AI success!');
-    return advice;
+    console.log('Trying Netlify Function...');
+    console.log('Current URL:', window.location.href);
+    
+    // Try Netlify Function first (production)
+    const response = await fetch('/.netlify/functions/gemini-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: issue,
+        history: contextHistory.history,
+        isPartialHistory: contextHistory.isPartial,
+        isFullAnalysisRequest: consecutiveQuestionCount >= 2
+      })
+    });
+
+    console.log('Netlify Function response:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Netlify Function error details:', errorText);
+      console.error('Response status:', response.status);
+      console.error('Response headers:', [...response.headers.entries()]);
+      
+      // Parse error if it's JSON
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.error('Parsed error:', errorJson);
+      } catch (e) {
+        console.error('Raw error text:', errorText);
+      }
+      
+      throw new Error(`Netlify function failed: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('Netlify Function success!', data);
+    return data.advice;
   } catch (error) {
-    console.log('Direct AI failed:', error.message);
-    console.log('Falling back to offline advice...');
+    console.log('Netlify function error:', error.message);
+    console.log('Error details:', error);
+    console.log('Trying direct API fallback...');
+    
+    // No direct API fallback on client (security). Fail so offline advice kicks in.
     throw error;
   }
 }
 
 async function saveToLocalHistory(issue, advice) {
-  if (isGuest || !currentUser || !supabase) return;
+  if (isGuest || !currentUser) return;
   
   try {
     const { error } = await supabase
@@ -809,7 +806,9 @@ function getOfflineHealthAdvice(message) {
   const highRiskKeywords = ['cpr', 'choking', 'heimlich', 'unconscious', 'not breathing', 'chest compressions', 'fracture', 'broken bone', 'spinal', 'neck injury', 'severe bleeding', 'deep cut', 'medication', 'pills', 'injection'];
   const isHighRisk = highRiskKeywords.some(keyword => msg.includes(keyword));
   
-
+  if (isHighRisk) {
+    return "🚨 **CRITICAL SAFETY WARNING:** These procedures can cause serious harm or death if performed incorrectly. Only attempt if you have proper training and no professional help is available.\n\n📞 **EMERGENCY NUMBERS (INDIA):**\n• National Emergency: 108\n• Ambulance: 102\n• Police: 100\n• Fire: 101\n\nCall immediately for life-threatening situations.\n\n**🆘 IMMEDIATE ACTION:** Call emergency services first for CPR, choking, unconsciousness, severe bleeding, or spinal injuries.\n\n**While waiting for help:**\n• Keep the person still and comfortable\n• Monitor breathing and consciousness\n• Do not move someone with suspected spinal injury\n• Apply direct pressure only to visible, accessible bleeding\n\n⚠️ **Disclaimer:** I'm an AI assistant providing general information only. Always consult qualified healthcare professionals for proper medical diagnosis and treatment. Professional medical advice takes priority over AI suggestions.";
+  }
   
   if (!isHealthRelated) {
     return "**<u>This ain't a medical emergency!</u>** 😄 But hey, I'll help anyway! While I'm designed to help with health concerns, I can see you're asking about something else. For the best answer to non-medical questions, try asking a general AI assistant or search engine. Now, is there anything health-related I can help you with today?\n\n⚠️ **Disclaimer:** I'm an AI assistant providing general information only. Always consult qualified healthcare professionals for proper medical diagnosis and treatment. Professional medical advice takes priority over AI suggestions.";
@@ -1018,12 +1017,12 @@ function formatMessage(text) {
 }
 
 // Speech functionality
-if (typeof currentUtterance === 'undefined') var currentUtterance = null;
-if (typeof currentMessageId === 'undefined') var currentMessageId = null;
-if (typeof isPaused === 'undefined') var isPaused = false;
-if (typeof speedChangeTimeout === 'undefined') var speedChangeTimeout = null;
-if (typeof currentText === 'undefined') var currentText = '';
-if (typeof currentPosition === 'undefined') var currentPosition = 0;
+let currentUtterance = null;
+let currentMessageId = null;
+let isPaused = false;
+let speedChangeTimeout = null;
+let currentText = '';
+let currentPosition = 0;
 
 function toggleSpeech(messageId) {
   const messageElement = document.getElementById(messageId);
@@ -1545,493 +1544,4 @@ function setResponsivePlaceholder() {
   const mobileText = textarea.getAttribute('data-placeholder-mobile');
   
   textarea.placeholder = isMobile ? mobileText : fullText;
-}
-
-// Global variables for maps
-if (typeof hospitalMap === 'undefined') {
-  var hospitalMap = null;
-}
-if (typeof userLocation === 'undefined') {
-  var userLocation = null;
-}
-if (typeof hospitalMarkers === 'undefined') {
-  var hospitalMarkers = [];
-}
-if (typeof apiTimeout === 'undefined') {
-  var apiTimeout = null;
-}
-if (typeof mapTilerApiKey === 'undefined') {
-  var mapTilerApiKey = null;
-}
-
-// Get MapTiler API key
-function getMapTilerKey() {
-  mapTilerApiKey = window.ENV?.MAPTILER_API_KEY || null;
-  console.log('MapTiler API Key:', mapTilerApiKey ? 'Found' : 'Missing');
-  return mapTilerApiKey;
-}
-
-// Hospital Map Functionality
-function openHospitalModal() {
-  const modal = document.getElementById('hospital-modal');
-  const loading = document.getElementById('map-loading');
-  const loadingText = document.getElementById('loading-text');
-  
-  modal.classList.remove('hidden');
-  loading.classList.remove('hidden');
-  loadingText.textContent = 'Requesting location permission...';
-  
-  // Get API key and request location
-  getMapTilerKey();
-  requestLocationAndInitMap();
-}
-
-function requestLocationAndInitMap() {
-  const loadingText = document.getElementById('loading-text');
-  
-  if (!navigator.geolocation) {
-    loadingText.textContent = 'Geolocation not supported. Using default location...';
-    setTimeout(() => initMapWithFallback(), 2000);
-    return;
-  }
-  
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      userLocation = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude
-      };
-      loadingText.textContent = 'Loading map and finding hospitals...';
-      initMapWithLocation();
-    },
-    (error) => {
-      console.log('Location permission denied:', error);
-      loadingText.textContent = 'Location access denied. Using SRM University area...';
-      setTimeout(() => initMapWithFallback(), 2000);
-    },
-    { timeout: 5000, enableHighAccuracy: true }
-  );
-}
-
-function initMapWithLocation() {
-  if (typeof maplibregl === 'undefined') {
-    setTimeout(() => initMapWithFallback(), 1000);
-    return;
-  }
-  
-  const mapElement = document.getElementById('google-map');
-  map = new maplibregl.Map({
-    container: mapElement,
-    style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${mapTilerApiKey}`,
-    center: [userLocation.lng, userLocation.lat],
-    zoom: 12
-  });
-  
-  map.on('load', () => {
-    // Add user location marker
-    new maplibregl.Marker({ color: '#ef4444' })
-      .setLngLat([userLocation.lng, userLocation.lat])
-      .setPopup(new maplibregl.Popup().setText('Your Location'))
-      .addTo(map);
-    
-    // Start API timeout and search
-    startApiTimeout();
-    searchNearbyHospitals();
-  });
-}
-
-function initMapWithFallback() {
-  // Try to get user's actual location first
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        userLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        if (typeof maplibregl !== 'undefined' && mapTilerApiKey) {
-          initMapWithLocation();
-        } else {
-          showFallbackHospitals();
-        }
-      },
-      (error) => {
-        console.log('Location access denied, using SRM area as fallback');
-        userLocation = { lat: 12.8230, lng: 80.0444 };
-        if (typeof maplibregl !== 'undefined' && mapTilerApiKey) {
-          initMapWithLocation();
-        } else {
-          showFallbackHospitals();
-        }
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
-  } else {
-    userLocation = { lat: 12.8230, lng: 80.0444 };
-    if (typeof maplibregl !== 'undefined' && mapTilerApiKey) {
-      initMapWithLocation();
-    } else {
-      showFallbackHospitals();
-    }
-  }
-}
-
-function startApiTimeout() {
-  apiTimeout = setTimeout(() => {
-    console.log('API timeout - showing fallback hospitals');
-    showFallbackHospitals();
-  }, 8000);
-}
-
-async function searchNearbyHospitals() {
-  if (!map) return;
-  
-  try {
-    // Use our comprehensive hospital database
-    const nearbyHospitals = getHospitalsWithinRadius(userLocation.lat, userLocation.lng, 50);
-    
-    if (nearbyHospitals.length > 0) {
-      clearTimeout(apiTimeout);
-      displayRealHospitals(nearbyHospitals);
-    } else {
-      throw new Error('No hospitals found within 50km');
-    }
-  } catch (error) {
-    console.log('Hospital search failed:', error);
-    // Fallback will be triggered by timeout
-  }
-}
-
-function displayRealHospitals(hospitals) {
-  const loading = document.getElementById('map-loading');
-  const radarOverlay = document.getElementById('radar-overlay');
-  
-  // Clear existing markers
-  hospitalMarkers.forEach(marker => marker.remove());
-  hospitalMarkers = [];
-  
-  hospitals.forEach((hospital, index) => {
-    const coords = [hospital.lng, hospital.lat];
-    
-    const marker = new maplibregl.Marker({ color: '#10b981' })
-      .setLngLat(coords)
-      .setPopup(
-        new maplibregl.Popup().setHTML(`
-          <div style="padding: 10px; min-width: 200px;">
-            <h3 style="margin: 0 0 5px 0; font-size: 14px; font-weight: 600;">${hospital.name}</h3>
-            <p style="margin: 0 0 3px 0; font-size: 12px; color: #666;">${hospital.distance.toFixed(1)} km away</p>
-            <p style="margin: 0 0 5px 0; font-size: 11px; color: #888;">${hospital.type}</p>
-            <div style="font-size: 12px; color: #10b981;">⭐ ${hospital.rating}/10</div>
-          </div>
-        `)
-      )
-      .addTo(map);
-    
-    marker.getElement().addEventListener('click', () => {
-      selectRealHospital(hospital);
-    });
-    
-    hospitalMarkers.push(marker);
-  });
-  
-  setTimeout(() => {
-    loading.classList.add('hidden');
-    radarOverlay.classList.add('hidden');
-    
-    if (hospitals.length > 0) {
-      selectRealHospital(hospitals[0]);
-    }
-  }, 1000);
-}
-
-function selectRealHospital(hospital) {
-  const detailsPanel = document.getElementById('hospital-details');
-  const eta = Math.ceil(hospital.distance * 2) + '-' + Math.ceil(hospital.distance * 3);
-  const coords = [hospital.lng, hospital.lat];
-  
-  map.flyTo({ center: coords, zoom: 15 });
-  
-  const starsHtml = '⭐'.repeat(Math.floor(hospital.rating)) + 
-                   (hospital.rating % 1 >= 0.5 ? '⭐' : '') + 
-                   '☆'.repeat(Math.max(0, 5 - Math.ceil(hospital.rating)));
-  
-  detailsPanel.innerHTML = `
-    <div class="hospital-info">
-      <div class="hospital-name">${hospital.name}</div>
-      
-      <div class="hospital-rating-display">
-        <div class="rating-stars">${starsHtml}</div>
-        <div class="rating-number">${hospital.rating}/10</div>
-      </div>
-      
-      <div class="hospital-meta">
-        <div class="meta-item">
-          <div class="meta-label">Distance</div>
-          <div class="meta-value">${hospital.distance.toFixed(1)} km</div>
-        </div>
-        <div class="meta-item">
-          <div class="meta-label">Ambulance ETA</div>
-          <div class="meta-value">${eta} mins</div>
-        </div>
-        <div class="meta-item">
-          <div class="meta-label">Type</div>
-          <div class="meta-value">${hospital.type}</div>
-        </div>
-        <div class="meta-item">
-          <div class="meta-label">Emergency Services</div>
-          <div class="meta-value">${hospital.emergencyServices ? '✅ Available' : '❌ Not Available'}</div>
-        </div>
-      </div>
-      
-      <div class="specialties">
-        <h4>Specialties</h4>
-        <div class="specialty-tags">
-          ${hospital.specialties.map(specialty => 
-            `<span class="specialty-tag">${specialty}</span>`
-          ).join('')}
-        </div>
-      </div>
-      
-      <div class="contact-actions">
-        <a href="tel:${hospital.contact}" class="contact-btn call-btn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-          </svg>
-          Call Hospital
-        </a>
-        
-        <a href="tel:${hospital.ambulanceContact}" class="contact-btn ambulance-call-btn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M8 19H5a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h3m0 3v-3m0 3h3m-3-3V9a1 1 0 0 1 1-1h6l3 4v6a1 1 0 0 1-1 1h-2"/>
-            <circle cx="7" cy="19" r="2"/>
-            <circle cx="17" cy="19" r="2"/>
-          </svg>
-          Call Ambulance
-        </a>
-        
-        <button class="contact-btn directions-btn" onclick="openDirections('${hospital.address}', ${hospital.lat}, ${hospital.lng})">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="3 11 22 2 13 21 11 13 3 11"/>
-          </svg>
-          Get Directions
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-
-
-function showFallbackHospitals() {
-  const loading = document.getElementById('map-loading');
-  const loadingText = document.getElementById('loading-text');
-  
-  loadingText.textContent = 'Loading hospitals...';
-  
-  setTimeout(() => {
-    loading.classList.add('hidden');
-    displayHospitalList();
-  }, 1000);
-}
-
-
-
-function closeHospitalModal() {
-  const modal = document.getElementById('hospital-modal');
-  const loading = document.getElementById('map-loading');
-  const hospitalList = document.getElementById('hospital-list');
-  const googleMap = document.getElementById('google-map');
-  
-  modal.classList.add('hidden');
-  loading.classList.remove('hidden');
-  hospitalList.classList.add('hidden');
-  googleMap.style.display = 'block';
-  
-  if (apiTimeout) {
-    clearTimeout(apiTimeout);
-    apiTimeout = null;
-  }
-  
-  if (hospitalMarkers.length > 0) {
-    hospitalMarkers.forEach(marker => marker.remove());
-    hospitalMarkers = [];
-  }
-  
-  document.querySelectorAll('.hospital-item').forEach(item => {
-    item.classList.remove('selected');
-  });
-  
-  const detailsPanel = document.getElementById('hospital-details');
-  detailsPanel.innerHTML = `
-    <div class="details-placeholder">
-      <p>🏥 Select a hospital to view details</p>
-    </div>
-  `;
-  
-  if (map) {
-    map.remove();
-    map = null;
-  }
-  userLocation = null;
-}
-
-function displayHospitalList() {
-  const hospitalList = document.getElementById('hospital-list');
-  const hospitalItems = document.getElementById('hospital-items');
-  const googleMap = document.getElementById('google-map');
-  
-  // Hide map and show list
-  googleMap.style.display = 'none';
-  hospitalList.classList.remove('hidden');
-  
-  // Use actual user location or fallback
-  const currentLocation = userLocation || { lat: 12.8230, lng: 80.0444 };
-  const nearbyHospitals = getHospitalsWithinRadius(currentLocation.lat, currentLocation.lng, 50);
-  
-  hospitalItems.innerHTML = '';
-  
-  nearbyHospitals.slice(0, 8).forEach((hospital, index) => {
-    const hospitalItem = document.createElement('div');
-    hospitalItem.className = 'hospital-item';
-    hospitalItem.dataset.hospitalId = hospital.id;
-    
-    hospitalItem.innerHTML = `
-      <div class="hospital-item-content">
-        <div class="hospital-name">${hospital.name}</div>
-        <div class="hospital-info">
-          <span class="hospital-distance">${hospital.distance.toFixed(1)} km</span>
-          <span class="hospital-rating">⭐ ${hospital.rating}/10</span>
-        </div>
-        <div class="hospital-type">${hospital.type}</div>
-      </div>
-    `;
-    
-    hospitalItem.addEventListener('click', () => selectHospital(hospital));
-    hospitalItems.appendChild(hospitalItem);
-  });
-  
-  // Auto-select first hospital
-  if (nearbyHospitals.length > 0) {
-    selectHospital(nearbyHospitals[0]);
-  }
-}
-
-function selectHospital(hospital) {
-  document.querySelectorAll('.hospital-item').forEach(item => {
-    item.classList.remove('selected');
-  });
-  
-  const currentItem = document.querySelector(`[data-hospital-id="${hospital.id}"]`);
-  if (currentItem) {
-    currentItem.classList.add('selected');
-  }
-  
-  displayHospitalDetails(hospital);
-}
-
-function displayHospitalDetails(hospital) {
-  const detailsPanel = document.getElementById('hospital-details');
-  const eta = Math.ceil(hospital.distance * 2) + '-' + Math.ceil(hospital.distance * 3);
-  
-  detailsPanel.innerHTML = `
-    <div class="hospital-info">
-      <h3 class="hospital-name">${hospital.name}</h3>
-      
-      <div class="info-item">
-        <div class="info-label">Rating</div>
-        <div class="info-value">⭐ ${hospital.rating}/10</div>
-      </div>
-      
-      <div class="info-item">
-        <div class="info-label">Distance</div>
-        <div class="info-value">${hospital.distance.toFixed(1)} km</div>
-      </div>
-      
-      <div class="info-item">
-        <div class="info-label">Ambulance ETA</div>
-        <div class="info-value">${eta} mins</div>
-      </div>
-      
-      <div class="info-item">
-        <div class="info-label">Type</div>
-        <div class="info-value">${hospital.type}</div>
-      </div>
-      
-      <div class="info-item">
-        <div class="info-label">Emergency Services</div>
-        <div class="info-value ${hospital.emergencyServices ? 'available' : 'unavailable'}">
-          ${hospital.emergencyServices ? '✅ Available' : '❌ Not Available'}
-        </div>
-      </div>
-      
-      <div class="info-item">
-        <div class="info-label">Contact</div>
-        <div class="info-value">${hospital.contact}</div>
-      </div>
-      
-      <div class="action-buttons">
-        <a href="tel:${hospital.contact}" class="action-btn call-btn">
-          📞 Call Hospital
-        </a>
-        
-        <a href="tel:${hospital.ambulanceContact}" class="action-btn ambulance-btn">
-          🚑 Call Ambulance
-        </a>
-        
-        <button class="action-btn directions-btn" onclick="openDirections('${hospital.address}', ${hospital.lat}, ${hospital.lng})">
-          🗺️ Get Directions
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-function openDirections(address, hospitalLat, hospitalLng) {
-  if (userLocation && hospitalLat && hospitalLng) {
-    // Use coordinates for more accurate routing
-    const mapsUrl = `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${hospitalLat},${hospitalLng}`;
-    window.open(mapsUrl, '_blank');
-  } else {
-    // Fallback to address-based routing
-    const encodedAddress = encodeURIComponent(address);
-    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`;
-    window.open(mapsUrl, '_blank');
-  }
-}
-
-// Enhanced safety warning system
-function checkForHighRiskProcedures(query) {
-  // This function works as a backup to the keyword system
-  // It uses AI-like analysis to detect potentially dangerous procedures
-  const dangerousPatterns = [
-    /perform\s+(cpr|chest\s+compressions)/i,
-    /give\s+(medication|medicine|pills)/i,
-    /move\s+(unconscious|injured)\s+person/i,
-    /treat\s+(fracture|broken\s+bone)/i,
-    /stop\s+(severe|heavy)\s+bleeding/i,
-    /help\s+(choking|not\s+breathing)/i,
-    /do\s+(surgery|operation)/i,
-    /inject\s+(insulin|medication)/i
-  ];
-  
-  return dangerousPatterns.some(pattern => pattern.test(query));
-}
-
-// Function to check for high-risk keywords
-function containsHighRiskKeywords(query) {
-  const highRiskKeywords = ['cpr', 'choking', 'heimlich', 'unconscious', 'not breathing', 'chest compressions', 'fracture', 'broken bone', 'spinal', 'neck injury', 'severe bleeding', 'deep cut', 'medication', 'pills', 'injection', 'surgery', 'operation', 'trauma', 'accident', 'heart attack', 'stroke', 'seizure', 'overdose', 'poisoning', 'burn', 'electric shock'];
-  return highRiskKeywords.some(keyword => query.toLowerCase().includes(keyword));
-}
-
-// Function to enhance Gemini prompts with safety context
-function addSafetyContextToPrompt(originalPrompt, userQuery) {
-  const needsSafetyWarning = containsHighRiskKeywords(userQuery) || checkForHighRiskProcedures(userQuery);
-  
-  if (needsSafetyWarning) {
-    return originalPrompt + `
-
-IMPORTANT SAFETY NOTE: This query involves potentially dangerous medical procedures. Please analyze if the user is asking about procedures that could cause harm if performed incorrectly by untrained individuals. If so, prioritize safety warnings and emphasize the need for professional medical help. Include emergency numbers for India (108, 102, 100, 101) and stress that professional training is required for procedures like CPR, treating fractures, or handling unconscious patients.`;
-  }
-  
-  return originalPrompt;
 }
